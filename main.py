@@ -1,5 +1,13 @@
 import cv2
 import numpy as np
+import threading
+import time
+import pygame
+
+def alertMP3():
+    pygame.mixer.init()
+    pygame.mixer.music.load('alert.mp3')
+    pygame.mixer.music.play()
 
 # Carregar modelo YOLO
 modelConf = 'yolov3-tiny.cfg'
@@ -32,10 +40,12 @@ margin = 20
 
 # Estado de controle
 crosser = False
+last_cross_time = time.time()
 
 while True:
     check, img = video.read()
-    if not check:
+    if not check or img is None:
+        print("Erro ao capturar vídeo.")
         break
 
     # Mantém a resolução original
@@ -83,9 +93,11 @@ while True:
                 crosser_row = True
 
                 # Se entrou agora e antes não estava, emite alerta
-                if not crosser:
+                if not crosser and (time.time() - last_cross_time > 3):  # Alerta a cada 3 segundos
                     print("⚠️ ALERTA: Passou pela linha!")
+                    threading.Thread(target=alertMP3, daemon=True).start()
                     crosser = True
+                    last_cross_time = time.time()
 
         # Desenhar retângulo ao redor do objeto detectado
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
